@@ -7,26 +7,44 @@ library(jtools)
 library(dplyr)
 library(stringr)
 data <- read.csv("dataset26.csv")
+# Encoding(data[1,7])<-'ASCII' 
+# data[1,7]
+# guess_encoding(data[,7])
 glimpse(data)
-data[731,]
-extract(data[-731,], "title","(\\d)", convert = TRUE) #select year 
-guess_encoding(data[,6])
 
-#boxplot by variety
-data. <- evals %>%
-  select(gender, age)
-ggplot(data = evals.gender, aes(x = gender, y = age, fill = gender)) +
+# trans to binary
+data$bnpoints[data$points > 90] <- 1 #binary 
+data$bnpoints[data$points <= 90] <- 0
+
+#extract year from title
+data$year <- data$title
+data$year <- str_replace_all(data$year, "[[:punct:]]", " ")
+data$year <- parse_number(data$year)
+
+#omit
+data <- na.omit(data)
+
+#boxplot 
+data.price <- data %>%
+  select(bnpoints, price)
+
+ggplot(data = data.price, aes(x = bnpoints, y = price, group = bnpoints)) +
   geom_boxplot() +
-  labs(x = "Gender", y = "Age")+ 
-  theme(legend.position = "none")
+  labs(x = "bnpoints", y = "price")+ 
+  theme(legend.position = "none") 
+
+data.year <- data %>%
+  select(bnpoints, year)
+
+ggplot(data = data.year, aes(x = bnpoints, y = year, group = bnpoints)) +
+  geom_boxplot() +
+  labs(x = "bnpoints", y = "year")+ 
+  theme(legend.position = "none") 
+
+
+#myfit
+  myfit <- glm(newcol ~ country+price+province+year+variety+winery,
+               data=data, family=binomial())
 
 
 
-data$ynaffair[Affairs$affairs > 0] <- 1
-data$ynaffair[Affairs$affairs== 0] <- 0
-data$ynaffair <-factor(Affairs$ynaffair,levels=c(0,1),labels=c("No","Yes"))
-variety <- length(unique(data$variety))
-country <- length(unique(data$country))
-year #receive from title
-glm(points~country+price+province+year+variety+winery, 
-    family=binomial(link='logit'),data=data) 
