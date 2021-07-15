@@ -26,6 +26,7 @@ str(data)
 # trans to binary
 data$bnpoints[data$points > 90] <- 1 #binary 
 data$bnpoints[data$points <= 90] <- 0
+#converting the type of bnpoints to factor
 
 #extract year from title
 data$year <- data$title
@@ -35,9 +36,12 @@ data$year <- str_extract(data$year,"[0-9]{4}") #extracting year with four digits
 #omiting abnormal year
 data <- data %>%
   filter(year > 1900)
+#converting the type of year from chr. to intger
+data$year <- as.integer(data$year)
 
 #omitting the observations with missing variables 
 data <- na.omit(data)
+str(data)
 
 #initial data analysis
 #The boxplot of points against price
@@ -46,8 +50,6 @@ ggplot(data = data, aes(x = as.factor(bnpoints), y = price, group = bnpoints)) +
   labs(x = "bnpoints", y = "price", title = "The boxplot of price grouped by points",
        axis = c("good", "Excellent"))+ 
   theme(legend.position = "none") 
-
-exp(-2.61)
 
 #The boxplot of points against year
 ggplot(data = data, aes(x = as.factor(bnpoints), y = year, group = bnpoints)) +
@@ -61,7 +63,7 @@ ggplot(data = data, aes(x = factor(1), fill = country))+
   coord_polar("y")
 
 #the model with only price and year
-model <- glm(bnpoints ~ price+year,
+model <- glm(as.factor(bnpoints) ~ price+year,
              data=data, family=binomial(link = "logit"))
 summary(model)
 summ(model)
@@ -112,6 +114,15 @@ ggplot(data = data.price, aes(x = price, y = probs)) +
               se = FALSE) +
   labs(x = "price", y = "Probability of instructor being '1'")
 
+
+
+
+
+
+
+
+
+
 #myfit -- another model
 myfit <- glm(bnpoints ~ country+price+year,
              data=data, family=binomial(link = "logit"))
@@ -119,6 +130,15 @@ myfit <- glm(bnpoints ~ country+price+year,
 mod.coef.logodds2 <- myfit %>%
   summary() %>%
   coef()
+
+#analysis of deviance table
+anova(myfit, test = "Chi")
+
+#confidence interval  ??
+confint(myfit)
+#ROC curve
+library(pROC)
+roc_(data, model$fitted.values, plot = TRUE)
 
 #price.logodds.lower <- mod.coef.logodds["price", "Estimate"] - 
 #  1.96 * mod.coef.logodds["price", "Std. Error"]
