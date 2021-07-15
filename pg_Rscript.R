@@ -8,6 +8,7 @@ library(jtools)
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(purrr)
 library(readr)
 
 #import the data
@@ -59,13 +60,117 @@ ggplot(data = data, aes(x = factor(1), fill = country))+
   geom_bar(width = 2)+
   coord_polar("y")
 
+#the model with only price and year
+model <- glm(bnpoints ~ price+year,
+             data=data, family=binomial(link = "logit"))
+summary(model)
+summ(model)
+mod1coefs <- round(coef(model), 2)
 
-#fitting the genera
-myfit <- glm(bnpoints ~ country + price + year, data=data, family=binomial(link = "logit"))
+#rmd
+# confint(model) %>%
+#   kable()
 
+
+#Log-odds
+mod.coef.logodds <- model %>%
+  summary() %>%
+  coef()
+price.logodds.lower <- mod.coef.logodds["price", "Estimate"] - 
+  1.96 * mod.coef.logodds["price", "Std. Error"]
+price.logodds.upper <- mod.coef.logodds["price", "Estimate"] + 
+  1.96 * mod.coef.logodds["price", "Std. Error"]
+
+plot_model(model, show.values = TRUE, transform = NULL,
+           title = "Log-Odds (instructor)", show.p = FALSE)
+
+data.price <- data.price %>%
+  mutate(logodds = predict(model))
+
+#Odds
+price.odds.lower <- exp(price.logodds.lower)
+price.odds.upper <- exp(price.logodds.upper)
+
+plot_model(model, show.values = TRUE, axis.lim = c(1,1.5),
+           title = "Odds (instructor)", show.p = FALSE)
+
+data.price <- data.price %>%
+  mutate(odds = exp(logodds))
+
+#Probabilities
+p.num <- exp(mod.coef.logodds["(Intercept)", "Estimate"] + mod.coef.logodds["price", "Estimate"] * 52)
+p.denom <- 1 + p.num
+p.num / p.denom
+plogis(mod.coef.logodds["(Intercept)", "Estimate"] + mod.coef.logodds["price", "Estimate"] * 52)
+
+data.price <- data.price %>%
+  mutate(probs = fitted(model))
+
+ggplot(data = data.price, aes(x = price, y = probs)) +
+  geom_smooth(method="glm", 
+              method.args = list(family="binomial"), 
+              se = FALSE) +
+  labs(x = "price", y = "Probability of instructor being '1'")
+
+#myfit -- another model
+myfit <- glm(bnpoints ~ country+price+year,
+             data=data, family=binomial(link = "logit"))
+#Log-odds
+mod.coef.logodds2 <- myfit %>%
+  summary() %>%
+  coef()
+
+#price.logodds.lower <- mod.coef.logodds["price", "Estimate"] - 
+#  1.96 * mod.coef.logodds["price", "Std. Error"]
+#price.logodds.upper <- mod.coef.logodds["price", "Estimate"] + 
+#  1.96 * mod.coef.logodds["price", "Std. Error"]
+
+#estimating the parameter
+plot_model(myfit, show.values = TRUE, transform = NULL,
+           title = "Log-Odds (instructor)", show.p = FALSE)
+
+data.fitted <- data %>%
+  select(bnpoints, country, price, year) %>%
+  mutate(logodds = predict(myfit))
+
+#Odds
+#price.odds.lower <- exp(price.logodds.lower)
+#price.odds.upper <- exp(price.logodds.upper)
+
+plot_model(myfit, show.values = TRUE, axis.lim = c(1,1.5),
+           title = "Odds (instructor)", show.p = FALSE)
+
+data.fitted <- data.fitted %>%
+  mutate(odds = exp(logodds))
+
+#Probabilities
+#p.num <- exp(mod.coef.logodds["(Intercept)", "Estimate"] + mod.coef.logodds["price", "Estimate"] * 52)
+#p.denom <- 1 + p.num
+#p.num / p.denom
+#plogis(mod.coef.logodds["(Intercept)", "Estimate"] + mod.coef.logodds["price", "Estimate"] * 52)
+
+#the probability plot 
+#price against probability
+data.fitted <- data.fitted %>%
+  mutate(probs = fitted(myfit))
+
+ggplot(data = data.fitted, aes(x = price, y = probs)) +
+  geom_smooth(method="glm", 
+              method.args = list(family="binomial"), 
+              se = FALSE) +
+  labs(x = "price", y = "Probability of instructor being '1'")
+
+
+#year against probability
+ggplot(data = data.fitted, aes(x = year, y = probs)) +
+  geom_smooth(method="glm", 
+              method.args = list(family="binomial"), 
+              se = FALSE) +
+  labs(x = "year", y = "Probability of instructor being '1'")
+
+#
 summary(myfit)
 
 predict(myfit, type = "response")
 
 qchisq(p = 0.95, df = 1791)
-
