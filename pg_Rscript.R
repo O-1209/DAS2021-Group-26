@@ -1,3 +1,4 @@
+#package
 library(tidyverse)
 library(moderndive)
 library(gapminder)
@@ -5,15 +6,23 @@ library(sjPlot)
 library(stats)
 library(jtools)
 library(dplyr)
+library(tidyr)
 library(stringr)
 library(purrr)
-install.packages('sjPlot')
+library(readr)
+
+#import the data
 data <- read.csv("dataset26.csv")
+data <- data[,2:8]  #deleting the first line
+
+# glimpse data 
 # Encoding(data[1,7])<-'ASCII' 
 # data[1,7]
 # guess_encoding(data[,7])
 glimpse(data)
+str(data)
 
+# data processing 
 # trans to binary
 data$bnpoints[data$points > 90] <- 1 #binary 
 data$bnpoints[data$points <= 90] <- 0
@@ -21,29 +30,35 @@ data$bnpoints[data$points <= 90] <- 0
 #extract year from title
 data$year <- data$title
 data$year <- str_replace_all(data$year, "[[:punct:]]", " ")
-data$year <- str_extract(data$year,"[0-9]{4}")
-data$year <- parse_number(data$year)
-#omit
+data$year <- str_extract(data$year,"[0-9]{4}") #extracting year with four digits 
+
+#omiting abnormal year
+data <- data %>%
+  filter(year > 1900)
+
+#omitting the observations with missing variables 
 data <- na.omit(data)
 
-#boxplot 
-data.price <- data %>%
-  select(bnpoints, price)
-
-ggplot(data = data.price, aes(x = bnpoints, y = price, group = bnpoints)) +
-  geom_boxplot() +
-  labs(x = "bnpoints", y = "price")+ 
+#initial data analysis
+#The boxplot of points against price
+ggplot(data = data, aes(x = as.factor(bnpoints), y = price, group = bnpoints)) +
+  geom_boxplot(fill = c("pink", "yellow")) +
+  labs(x = "bnpoints", y = "price", title = "The boxplot of price grouped by points",
+       axis = c("good", "Excellent"))+ 
   theme(legend.position = "none") 
 
-data.year <- data %>%
-  select(bnpoints, year)
+exp(-2.61)
 
-ggplot(data = data.year, aes(x = bnpoints, y = year, group = bnpoints)) +
-  geom_boxplot() +
-  labs(x = "bnpoints", y = "year")+ 
+#The boxplot of points against year
+ggplot(data = data, aes(x = as.factor(bnpoints), y = year, group = bnpoints)) +
+  geom_boxplot(fill = c("blue","orange")) +
+  labs(x = "bnpoints", y = "year", title = "The boxplot of year grouped by points") +
   theme(legend.position = "none") 
 
-
+#The pie chart
+ggplot(data = data, aes(x = factor(1), fill = country))+
+  geom_bar(width = 2)+
+  coord_polar("y")
 
 #the model with only price and year
 model <- glm(bnpoints ~ price+year,
@@ -97,8 +112,6 @@ ggplot(data = data.price, aes(x = price, y = probs)) +
               se = FALSE) +
   labs(x = "price", y = "Probability of instructor being '1'")
 
-
-
 #myfit -- another model
 myfit <- glm(bnpoints ~ country+price+year,
              data=data, family=binomial(link = "logit"))
@@ -147,9 +160,17 @@ ggplot(data = data.fitted, aes(x = price, y = probs)) +
               se = FALSE) +
   labs(x = "price", y = "Probability of instructor being '1'")
 
+
 #year against probability
 ggplot(data = data.fitted, aes(x = year, y = probs)) +
   geom_smooth(method="glm", 
               method.args = list(family="binomial"), 
               se = FALSE) +
   labs(x = "year", y = "Probability of instructor being '1'")
+
+#
+summary(myfit)
+
+predict(myfit, type = "response")
+
+qchisq(p = 0.95, df = 1791)
