@@ -28,6 +28,10 @@ library(tidyr)
 library(stringr)
 library(purrr)
 library(readr)
+library(ROCR)
+library(lattice)
+library(caret)
+library(DALEX)
 ```
 
 ```{r data}
@@ -135,23 +139,26 @@ As can be seen from the pie chart above, wines originating in the US account for
 
 # Formal Data Analysis {#sec:FDA}
 
-*Generalised Linear Model*
+## Generalised Linear Models
 
 To begin to analyse the wine data formally, we fit the following linear model to the data.
 
-$$ \ln(\frac{p}{1-p})= \widehat{\alpha} + \widehat\beta_{\mbox{1}} \cdot \mathbb{I}_{country} + \widehat\beta_{\mbox{2}} \cdot {price}_{\mbox{i}} + \widehat\beta_{\mbox{3}} \cdot {year}_{\mbox{i}} + \epsilon_{\mbox{i}}, ~~~~ \epsilon_{\mbox{i}} \sim N(0,\sigma^2),$$
+\begin{align}
+\nonumber \ln(\frac{p}{1-p}) &= \widehat{\alpha} + \widehat\beta_{\mbox{1}} \cdot {countryAustralia}_{\mbox{i}} + \widehat\beta_{\mbox{2}} \cdot {countryAustria}_{\mbox{i}} +~...~+ \widehat\beta_{\mbox{24}} \cdot {countryUS}_{\mbox{i}}\\
+\nonumber &~~~+ \widehat\beta_{\mbox{25}} \cdot {price}_{\mbox{i}} + \widehat\beta_{\mbox{26}} \cdot {year}_{\mbox{i}} + \epsilon_{\mbox{i}}, ~~~~ \epsilon_{\mbox{i}} \sim N(0,\sigma^2),
+\end{align}
 
 where
 
-$\bullet$ $p = Prob(Excellent)$ and $1 - p = Prob(Good)$;
+$\bullet$ $p =$ Prob(Excellent) and $1 - p =$ Prob(Good);
 
 $\bullet$ $\widehat\alpha$ is the intercept;
 
-$\bullet$ $\widehat\beta_{\mbox{1}}$ is the coefficient for country;
+$\bullet$ $\widehat\beta_{\mbox{1}}$, $\widehat\beta_{\mbox{2}}$, ... ,$\widehat\beta_{\mbox{24}}$ are the coefficient for countries;
 
-$\bullet$ $\widehat\beta_{\mbox{2}}$ is the coefficient for price;
+$\bullet$ $\widehat\beta_{\mbox{25}}$ is the coefficient for price;
 
-$\bullet$ $\widehat\beta_{\mbox{3}}$ is the coefficient for year; and
+$\bullet$ $\widehat\beta_{\mbox{26}}$ is the coefficient for year; and
 
 $\bullet$ $\epsilon_{\mbox{i}}$ is the $i^{\mbox{th}}$ random error component.
 
@@ -177,7 +184,10 @@ anova(model1, test = "Chi")
 
 It can be seen that the p-value of the year is not significant, as shown in the previous scatter plot in Section {#sec:EDA}. So we plan to fit another model by removing year in next steps. Linear model 2 is built as following,
 
-$$ \ln(\frac{p}{1-p})= \widehat{\alpha} + \widehat\beta_{\mbox{1}} \cdot \mathbb{I}_{country} + \widehat\beta_{\mbox{2}} \cdot {price}_{\mbox{i}} + \epsilon_{\mbox{i}}, ~~~~ \epsilon_{\mbox{i}} \sim N(0,\sigma^2).$$
+\begin{align}
+\nonumber \ln(\frac{p}{1-p}) &= \widehat{\alpha} + \widehat\beta_{\mbox{1}} \cdot {countryAustralia}_{\mbox{i}} + \widehat\beta_{\mbox{2}} \cdot {countryAustria}_{\mbox{i}} +~...~+ \widehat\beta_{\mbox{24}} \cdot {countryUS}_{\mbox{i}}\\
+\nonumber &~~~+ \widehat\beta_{\mbox{25}} \cdot {price}_{\mbox{i}} + \epsilon_{\mbox{i}}, ~~~~ \epsilon_{\mbox{i}} \sim N(0,\sigma^2),
+\end{align}
 
 Next, fitting variables country and price in the model 2. 
 
@@ -188,10 +198,13 @@ model2%>%
   summary()
 ```
 
-The output shows that country of origin and the cost for a bottle of wine influence whether the number of points awarded is greater than 90, and the *** is the country who produce the most popular wine.
+The output shows that country of origin and the price, that is, the cost for a bottle of wine, influence whether the number of points awarded is greater than 90, and the *** is the country who produce the most popular wine.
+
+## probabilities
+
+In this step, we add the variable `Probs` to the data, which is the probability of being excellent wine. The estimated probabilities can also produced by age as follows:
 
 ```{r estimates}
-#probability 
 #adding the predict value
 data.noyear <- data %>%
   select(country, price, bnpoints) %>%
@@ -204,10 +217,11 @@ ggplot(data = data.noyear, aes(x = price, y = probs)) +
   labs(x = "price", y = "Probability of being Excellent wine")
 ```
 
+From the above plot, it can be clearly seen that as the price rises, the probability of being excellent wine is gradually increasing. This is consistent with the conclusion that price influences the points of wine, which is obtained in the previous report.
+
 ```{r ROC}
 #ROC plot 
 #goodness of the model
-library(ROCR)
 pro.noyear <- predict(model2, data, type = "response")
 predict.noyear <- prediction(pro.noyear, data$bnpoints)
 per.noyear <- performance(predict.noyear, measure = "tpr", x.measure = "fpr")
@@ -222,11 +236,6 @@ auc.noyear@y.values
 
 ```{r importance}
 #DELEX model to explain the importance of the variables
-#library the package
-library(lattice)
-library(caret)
-library(DALEX)
-
 #classifying the training dataset and test dataset
 wine <- as_tibble(data)
 str(wine)
@@ -251,3 +260,6 @@ explainer_glm <- DALEX::explain(bnpoints_glm, label = "glm",
 importance_glm <- variable_importance(explainer_glm, loss_function = loss_root_mean_square)
 plot(importance_glm)
 ```
+
+# Conclusions {#sec:Conc}
+
