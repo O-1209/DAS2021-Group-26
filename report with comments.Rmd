@@ -1,0 +1,253 @@
+---
+title: "GLM project"
+author: "Group 26"
+date: "7/19/2021"
+output:
+  pdf_document:
+    latex_engine: pdflatex
+    number_sections: yes
+    keep_tex: true
+  html_document:
+    df_print: paged
+fig_caption: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA)
+```
+
+```{r libraries,echo = FALSE ,include=FALSE, message=FALSE}
+library(tidyverse)
+library(moderndive)
+library(gapminder)
+library(sjPlot)
+library(stats)
+library(jtools)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(purrr)
+library(readr)
+```
+
+```{r data}
+#import the data
+data <- read.csv("dataset26.csv")
+```
+
+# Introduction {#sec:Intro}
+
+The ratings (the number of points awarded for the wine on a scale of 1-100) on a variety of wines are very different, due to many factors, such as different country, price, province, title, variety, winery, etc. This report will present numerical and graphical summaries of properties of wine and use a Generalised Linear Model (GLM) to explore the factors influencing the number of points awarded.
+
+## Data sources & research questions
+
+All the data comes from the WineEnthusiast. In the dataset, 3 explanatory variables were selected to investigate which properties of wine influence whether the number of points awarded is greater than 90 and which country produce the most popular wine. The variables are:
+
+- `country`: country of origin;
+- `price`: the cost for a bottle of wine;
+- `year`: extract from the `title` of the wine review in Section \ref{sec:EDA}.
+
+Our team select the `bnpoints` as the response variable, which is transformed from the `points` in Section  \ref{sec:EDA}.
+
+# Exploratory Data Analysis {#sec:EDA}
+
+Before starting to analyze the data, we first generate two new variables `year` and `bnpoints` based on the original dataset. Among them, `year` is extracted from the variable `title`, and `bnpoints` is a binary variable. Wines with a score greater than 90 are recorded as 1, and wines with a score less than or equal to 90 are recorded as 0. Next, delete outliers and missing values.
+
+```{r data.processing}
+data <- data[,2:8]  #deleting the first line
+
+#glimpse data 
+str(data)
+# data processing 
+# trans to binary
+data$bnpoints[data$points > 90] <- 1 
+data$bnpoints[data$points <= 90] <- 0
+#converting the type of bnpoints to factor
+data$bnpoints <- as.factor(data$bnpoints)
+
+#extract year from title
+data$year <- data$title
+data$year <- str_replace_all(data$year, "[[:punct:]]", " ")
+data$year <- str_extract(data$year,"[0-9]{4}") #extracting year with four digits 
+
+#omiting abnormal year
+data <- data %>%
+  filter(year > 1900)
+#converting the type of year from chr. to intger
+data$year <- as.integer(data$year)
+
+#omitting the observations with missing variables 
+data <- na.omit(data)
+```
+
+After removing missing data, there are 1794 types of wine to analyze. In this report, if points is 1, the quality of the wine is Excellent; if points is 0, the quality of the wine is Good. The relationship between points and prices and the relationship between points and years are presented in the following boxplots and scatter plots, respectively.
+
+```{r points.vs.price1}
+#The boxplot of points against price
+ggplot(data = data, aes(x = bnpoints, y = price, group = bnpoints)) +
+  geom_boxplot(fill = c("pink", "yellow")) +
+  labs(x = "Points", y = "Price", title = "The boxplot of price grouped by points") + 
+  scale_x_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
+  theme(legend.position = "none") 
+```
+
+The above boxplots show that higher-priced wines are of higher quality, in general, compared to the lower-priced wines and that the prices of wines are widely distributed. There are also potentially some outliers which have quite high price, as shown by the points shown beyond the “whiskers” of the boxplots.
+
+```{r points.vs.price2}
+#scatter plot
+ggplot(data = data, aes(x = price, y = bnpoints)) +
+  geom_point(position = position_jitter()) +
+  scale_y_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
+  labs(x = "Price", y = "Points", title = "The scatter plot of Price against Points") 
+```
+
+From the above scatter plot, we can more intuitively see that the prices of good wines are mostly concentrated in the range of 0-50, while the prices of excellent wines are higher and more widely distributed.
+
+```{r points.vs.year1}
+#The boxplot of points against year
+ggplot(data = data, aes(x = bnpoints, y = year, group = bnpoints)) +
+  geom_boxplot(fill = c("blue","orange")) +
+  labs(x = "Points", y = "Year", title = "The boxplot of year grouped by points") + 
+  scale_x_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
+  theme(legend.position = "none") 
+```
+
+We can see that Wines with more recent vintages are of slightly better quality than wines with farther vintages. There are also potentially ten outliers (five "Good" and five "Excellent") which have very long vintages can be seen in the boxplots. Next, we plot a scatter plot to try to better observe the relationship between both of them.
+
+```{r points.vs.year2}
+#scatter plot
+ggplot(data = data, aes(x = year, y = bnpoints)) +
+  geom_point(position = position_jitter()) +
+  scale_y_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
+  labs(x = "Year", y = "Points", title = "The scatter plot of Year against Points") 
+```
+
+There is no obvious relationship between years and points from the above scatter plot, we will further explore their relationship in the next section. The 25 country of origins are presented in the following pie chart.
+
+```{r country}
+#The pie chart
+ggplot(data = data, aes(x = factor(1), fill = country))+
+  geom_bar(width = 2)+
+  coord_polar("y")
+```
+
+As can be seen from the pie chart above, wines originating in the US account for nearly half of the total observations.
+
+# Formal Data Analysis {#sec:FDA}
+
+*Generalised Linear Model*
+
+To begin to analyse the wine data formally, we fit the following linear model to the data.
+
+$$ \ln(\frac{p}{1-p})= \widehat{\alpha} + \widehat\beta_{\mbox{1}} \cdot \mathbb{I}_{country} + \widehat\beta_{\mbox{2}} \cdot {price}_{\mbox{i}} + \widehat\beta_{\mbox{3}} \cdot {year}_{\mbox{i}} + \epsilon_{\mbox{i}}, ~~~~ \epsilon_{\mbox{i}} \sim N(0,\sigma^2),$$
+
+where
+
+$\bullet$ $p = Prob(Excellent)$ and $1 - p = Prob(Good)$;
+
+$\bullet$ $\widehat\alpha$ is the intercept;
+
+$\bullet$ $\widehat\beta_{\mbox{1}}$ is the coefficient for country;
+
+$\bullet$ $\widehat\beta_{\mbox{2}}$ is the coefficient for price;
+
+$\bullet$ $\widehat\beta_{\mbox{3}}$ is the coefficient for year; and
+
+$\bullet$ $\epsilon_{\mbox{i}}$ is the $i^{\mbox{th}}$ random error component.
+
+At first, fitting all of the variables in the model 1, and the output is shown below. 
+
+```{r full.model}
+#model1:bnpoints ~ country + price + year
+model1 <- glm(bnpoints ~ country + price + year,
+             data=data, family=binomial(link = "logit"))
+model1%>%
+  summary()
+```
+
+When model is fitted to the data, the estimates of intercept $\alpha$ and coefficient $\beta$ are returned and the AIC in model 1 is 1634.7. In order to decide whether the above variables should be retained, analysis of deviance table are presented as follow.
+
+```{r checking}
+#Inference 
+#analysis of deviance table
+anova(model1, test = "Chi") 
+# %>%kabel()
+#the p-value of the year is not significant, trying to fit a model omitting year variables
+```
+
+It can be seen that the p-value of the year is not significant, as shown in the previous scatter plot in Section {#sec:EDA}. So we plan to fit another model by removing year in next steps. Linear model 2 is built as following,
+
+$$ \ln(\frac{p}{1-p})= \widehat{\alpha} + \widehat\beta_{\mbox{1}} \cdot \mathbb{I}_{country} + \widehat\beta_{\mbox{2}} \cdot {price}_{\mbox{i}} + \epsilon_{\mbox{i}}, ~~~~ \epsilon_{\mbox{i}} \sim N(0,\sigma^2).$$
+
+Next, fitting variables country and price in the model 2. 
+
+```{r model2}
+#the model2: bnpoints ~ price + country
+model2 <- glm(bnpoints ~ country + price, data = data, family = binomial(link = "logit"))
+model2%>%
+  summary()
+```
+
+The output shows that country of origin and the cost for a bottle of wine influence whether the number of points awarded is greater than 90, and the *** is the country who produce the most popular wine.
+
+```{r estimates}
+#probability 
+#adding the predict value
+data.noyear <- data %>%
+  select(country, price, bnpoints) %>%
+  mutate(probs = fitted(model2))
+
+ggplot(data = data.noyear, aes(x = price, y = probs)) +
+  geom_smooth(method="glm", 
+              method.args = list(family="binomial"), 
+              se = FALSE) +
+  labs(x = "price", y = "Probability of being Excellent wine")
+```
+
+```{r ROC}
+#ROC plot 
+#goodness of the model
+library(ROCR)
+pro.noyear <- predict(model2, data, type = "response")
+predict.noyear <- prediction(pro.noyear, data$bnpoints)
+per.noyear <- performance(predict.noyear, measure = "tpr", x.measure = "fpr")
+plot(per.noyear, col = "red", title = "ROC plot")
+```
+
+```{r AUC}
+#outputting the AUC
+auc.noyear <- performance(predict.noyear, measure = "auc")
+auc.noyear@y.values
+```
+
+```{r importance}
+#DELEX model to explain the importance of the variables
+#library the package
+library(lattice)
+library(caret)
+library(DALEX)
+
+#classifying the training dataset and test dataset
+wine <- as_tibble(data)
+str(wine)
+id <- sample(2, nrow(wine), replace = TRUE, prob = c(0.7, 0.3))
+winetrain <- wine[id == 1,]
+winetest <- wine[id == 2,]
+
+#building the full model using GLM
+bnpoints_glm <- train(bnpoints ~., data = winetrain,
+                      method = "glm", family = "binomial")
+#explaining the model
+p_fun <- function(object, newdata){
+  predict(object, newdata = newdata, type = "prob")[,2]
+}
+yTest <- as.numeric(as.character(winetest$bnpoints))
+
+explainer_glm <- DALEX::explain(bnpoints_glm, label = "glm", 
+                                data = winetest, y = yTest,
+                                predict_function = p_fun)
+
+#the importance analysis of variables
+importance_glm <- variable_importance(explainer_glm, loss_function = loss_root_mean_square)
+plot(importance_glm)
+```
