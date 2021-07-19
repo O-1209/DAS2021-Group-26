@@ -45,7 +45,7 @@ The ratings (the number of points awarded for the wine on a scale of 1-100) on a
 
 ## Data sources & research questions
 
-All the data comes from the WineEnthusiast. In the dataset, 3 explanatory variables were selected to investigate which properties of wine influence whether the number of points awarded is greater than 90 and which country produce the most popular wine. The variables are:
+All the data comes from the WineEnthusiast. In the dataset, 3 explanatory variables were selected to investigate which properties of wine influence whether the number of points awarded is greater than 90. The variables are:
 
 - `country`: country of origin;
 - `price`: the cost for a bottle of wine;
@@ -139,7 +139,7 @@ As can be seen from the pie chart above, wines originating in the US account for
 
 # Formal Data Analysis {#sec:FDA}
 
-## Generalised Linear Models
+## Generalised linear models
 
 To begin to analyse the wine data formally, we fit the following linear model to the data.
 
@@ -162,7 +162,7 @@ $\bullet$ $\widehat\beta_{\mbox{26}}$ is the coefficient for year; and
 
 $\bullet$ $\epsilon_{\mbox{i}}$ is the $i^{\mbox{th}}$ random error component.
 
-At first, fitting all of the variables in the model 1, and the output is shown below. 
+At first, fitting all of the variables in the model1, and the output is shown below. 
 
 ```{r full.model}
 #model1:bnpoints ~ country + price + year
@@ -172,7 +172,7 @@ model1%>%
   summary()
 ```
 
-When model is fitted to the data, the estimates of intercept $\alpha$ and coefficient $\beta$ are returned and the AIC in model 1 is 1634.7. In order to decide whether the above variables should be retained, analysis of deviance table are presented as follow.
+When model is fitted to the data, the estimates of intercept $\alpha$ and coefficient $\beta$ are returned and the AIC in model1 is 1634.7. In order to decide whether the above variables should be retained, analysis of deviance table are presented as follow.
 
 ```{r checking}
 #Inference 
@@ -182,14 +182,14 @@ anova(model1, test = "Chi")
 #the p-value of the year is not significant, trying to fit a model omitting year variables
 ```
 
-It can be seen that the p-value of the year is not significant, as shown in the previous scatter plot in Section {#sec:EDA}. So we plan to fit another model by removing year in next steps. Linear model 2 is built as following,
+It can be seen that the p-value of the year is not significant, as shown in the previous scatter plot in Section \ref{#sec:EDA}. So we plan to fit another model by removing year in next steps. Linear model2 is built as following,
 
 \begin{align}
 \nonumber \ln(\frac{p}{1-p}) &= \widehat{\alpha} + \widehat\beta_{\mbox{1}} \cdot {countryAustralia}_{\mbox{i}} + \widehat\beta_{\mbox{2}} \cdot {countryAustria}_{\mbox{i}} +~...~+ \widehat\beta_{\mbox{24}} \cdot {countryUS}_{\mbox{i}}\\
 \nonumber &~~~+ \widehat\beta_{\mbox{25}} \cdot {price}_{\mbox{i}} + \epsilon_{\mbox{i}}, ~~~~ \epsilon_{\mbox{i}} \sim N(0,\sigma^2),
 \end{align}
 
-Next, fitting variables country and price in the model 2. 
+Next, fitting variables country and price in the model2. 
 
 ```{r model2}
 #the model2: bnpoints ~ price + country
@@ -198,9 +198,9 @@ model2%>%
   summary()
 ```
 
-The output shows that country of origin and the price, that is, the cost for a bottle of wine, influence whether the number of points awarded is greater than 90, and the *** is the country who produce the most popular wine.
+The output shows that country of origin and the price, that is, the cost for a bottle of wine, influence whether the number of points awarded is greater than 90.
 
-## probabilities
+## Price against the probability of being excellent wine
 
 In this step, we add the variable `Probs` to the data, which is the probability of being excellent wine. The estimated probabilities can also produced by age as follows:
 
@@ -219,6 +219,10 @@ ggplot(data = data.noyear, aes(x = price, y = probs)) +
 
 From the above plot, it can be clearly seen that as the price rises, the probability of being excellent wine is gradually increasing. This is consistent with the conclusion that price influences the points of wine, which is obtained in the previous report.
 
+## ROC and AUC
+
+In this section, we access the predictive power of the selected model2 by looking at the ROC curve and AUC value. The ROC curve for the model fitted to our data as follow:
+
 ```{r ROC}
 #ROC plot 
 #goodness of the model
@@ -233,6 +237,10 @@ plot(per.noyear, col = "red", title = "ROC plot")
 auc.noyear <- performance(predict.noyear, measure = "auc")
 auc.noyear@y.values
 ```
+
+And the area under the ROC curve, known as AUC, in our model is 0.8420448 which is greater than 0.5. It is indicated that the model performs better than a random guess.
+
+## DELEX model
 
 ```{r importance}
 #DELEX model to explain the importance of the variables
@@ -260,6 +268,7 @@ explainer_glm <- DALEX::explain(bnpoints_glm, label = "glm",
 importance_glm <- variable_importance(explainer_glm, loss_function = loss_root_mean_square)
 plot(importance_glm)
 ```
+
 
 # Conclusions {#sec:Conc}
 
