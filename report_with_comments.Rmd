@@ -141,26 +141,23 @@ As can be seen from the pie chart above, wines originating in the US account for
 
 ## Generalised linear models
 
-To begin to analyse the wine data formally, we fit the following linear model to the data.
+To begin to analyse the wine data formally, we fit the following linear model to the data and choose Argentina as the baseline category of countries.
 
-\begin{align}
-\nonumber \ln(\frac{p}{1-p}) &= \widehat{\alpha} + \widehat\beta_{\mbox{1}} \cdot {countryAustralia}_{\mbox{i}} + \widehat\beta_{\mbox{2}} \cdot {countryAustria}_{\mbox{i}} +~...~+ \widehat\beta_{\mbox{24}} \cdot {countryUS}_{\mbox{i}}\\
-\nonumber &~~~+ \widehat\beta_{\mbox{25}} \cdot {price}_{\mbox{i}} + \widehat\beta_{\mbox{26}} \cdot {year}_{\mbox{i}} + \epsilon_{\mbox{i}}, ~~~~ \epsilon_{\mbox{i}} \sim N(0,\sigma^2),
-\end{align}
+$$\ln(\frac{p}{1-p}) = \alpha + \beta_1 \cdot \mathbb{I}_{Australia} + \beta_2 \cdot \mathbb{I}_{Austria} +~...~+ \beta_{24} \cdot \mathbb{I}_{US} + \beta_{25} \cdot X_{price} + \beta_{26} \cdot X_{year} + \epsilon, ~~~~ \epsilon \sim N(0,\sigma^2),$$
 
 where
 
-$\bullet$ $p =$ Prob(Excellent) and $1 - p =$ Prob(Good);
+$\bullet$ $p = Prob(Excellent)$ and $1 - p = Prob(Good)$;
 
-$\bullet$ $\widehat\alpha$ is the intercept;
+$\bullet$ $\alpha$ is the intercept;
 
-$\bullet$ $\widehat\beta_{\mbox{1}}$, $\widehat\beta_{\mbox{2}}$, ... ,$\widehat\beta_{\mbox{24}}$ are the coefficient for countries;
+$\bullet$ $\beta_1$, $\beta_2$, ... ,$\beta_{24}$ are the coefficient for countries;
 
-$\bullet$ $\widehat\beta_{\mbox{25}}$ is the coefficient for price;
+$\bullet$ $\beta_{25}$ is the coefficient for price;
 
-$\bullet$ $\widehat\beta_{\mbox{26}}$ is the coefficient for year; and
+$\bullet$ $\beta_{26}$ is the coefficient for year; and
 
-$\bullet$ $\epsilon_{\mbox{i}}$ is the $i^{\mbox{th}}$ random error component.
+$\bullet$ $\epsilon$ is the random error component.
 
 At first, fitting all of the variables in the model1, and the output is shown below. 
 
@@ -182,12 +179,9 @@ anova(model1, test = "Chi")
 #the p-value of the year is not significant, trying to fit a model omitting year variables
 ```
 
-It can be seen that the p-value of the year is not significant, as shown in the previous scatter plot in Section \ref{#sec:EDA}. So we plan to fit another model by removing year in next steps. Linear model2 is built as following,
+It can be seen that the p-value of the year is not significant, as shown in the previous scatter plot in Section \ref{sec:EDA}. So we plan to fit another model by removing year in next steps. Linear model2 is built as following,
 
-\begin{align}
-\nonumber \ln(\frac{p}{1-p}) &= \widehat{\alpha} + \widehat\beta_{\mbox{1}} \cdot {countryAustralia}_{\mbox{i}} + \widehat\beta_{\mbox{2}} \cdot {countryAustria}_{\mbox{i}} +~...~+ \widehat\beta_{\mbox{24}} \cdot {countryUS}_{\mbox{i}}\\
-\nonumber &~~~+ \widehat\beta_{\mbox{25}} \cdot {price}_{\mbox{i}} + \epsilon_{\mbox{i}}, ~~~~ \epsilon_{\mbox{i}} \sim N(0,\sigma^2),
-\end{align}
+$$\ln(\frac{p}{1-p}) = \alpha + \beta_1 \cdot \mathbb{I}_{Australia} + \beta_2 \cdot \mathbb{I}_{Austria} +~...~+ \beta_{24} \cdot \mathbb{I}_{US} + \beta_{25} \cdot X_{price} + \epsilon, ~~~~ \epsilon \sim N(0,\sigma^2).$$
 
 Next, fitting variables country and price in the model2. 
 
@@ -198,7 +192,12 @@ model2%>%
   summary()
 ```
 
-The output shows that country of origin and the price, that is, the cost for a bottle of wine, influence whether the number of points awarded is greater than 90.
+```{r CI}
+plot_model(model2, show.values = TRUE, transform = NULL,
+           title = "Log-Odds (instructor)", show.p = FALSE)
+```
+
+The output above shows that the p-values of Austria, Chile, Germany and price are significant. Therefore, country of origin and the price, that is, the cost for a bottle of wine, influence whether the number of points awarded is greater than 90.
 
 ## Price against the probability of being excellent wine
 
@@ -221,7 +220,7 @@ From the above plot, it can be clearly seen that as the price rises, the probabi
 
 ## ROC and AUC
 
-In this section, we access the predictive power of the selected model2 by looking at the ROC curve and AUC value. The ROC curve for the model fitted to our data as follow:
+In this section, we access the predictive power of the selected model2, which contains two explanatory variables `country` and `price`, by looking at the ROC curve and AUC value. The ROC curve for the model fitted to our data as follow:
 
 ```{r ROC}
 #ROC plot 
@@ -242,7 +241,9 @@ And the area under the ROC curve, known as AUC, in our model is 0.8420448 which 
 
 ## DELEX model
 
-```{r importance}
+In this section, we divide the data set into training set and test set and construct DELEX model via package caret and DELEX, in order to explain the importance of the variables. In the model, `country`, `price` and `year` are explanatory variables; `points` are response variable. The loss function applied in the code is the Root Mean Square Error (RMSE), which is interpreted as how much the absence of this variable will affect the predicted value of the response variable.
+
+```{r importance, message = FALSE, warning = FALSE }
 #DELEX model to explain the importance of the variables
 #classifying the training dataset and test dataset
 wine <- as_tibble(data)
@@ -250,25 +251,33 @@ str(wine)
 id <- sample(2, nrow(wine), replace = TRUE, prob = c(0.7, 0.3))
 winetrain <- wine[id == 1,]
 winetest <- wine[id == 2,]
-
-#building the full model using GLM
-bnpoints_glm <- train(bnpoints ~., data = winetrain,
-                      method = "glm", family = "binomial")
-#explaining the model
 p_fun <- function(object, newdata){
   predict(object, newdata = newdata, type = "prob")[,2]
 }
+
+#building the full model using GLM
+bnpoints_glm <- train(bnpoints ~ country + price + year, data = winetrain,
+                      method = "glm", family = "binomial")
+#explaining the model
+
 yTest <- as.numeric(as.character(winetest$bnpoints))
 
 explainer_glm <- DALEX::explain(bnpoints_glm, label = "glm", 
                                 data = winetest, y = yTest,
                                 predict_function = p_fun)
-
 #the importance analysis of variables
 importance_glm <- variable_importance(explainer_glm, loss_function = loss_root_mean_square)
 plot(importance_glm)
 ```
 
+Obviously, `price` and `country` have a greater influence on the `points`, especially `price`, while the `year` has a small impact on the `points`.
 
-# Conclusions {#sec:Conc}
+# Conclusion and Further Task {#sec:Conc}
 
+## Conclusion
+
+In summary, country and price influence whether the number of points awarded is greater than 90. The increase in price is positively associated with points, and points are also  influenced by countries. For example, wines of origin in Austria and Germany are of better quality
+
+## Further task
+
+Since the origins of different wines are widely distributed, in this report we only specify the geographic location to the country. the `country` is one of the model explanatory variable, while the `province` and `winery` are not included. In the next work, the geographic location can be more detailed, and further explore the influence of geographic location such as latitude and longitude and natural conditions on the quality of wine.
