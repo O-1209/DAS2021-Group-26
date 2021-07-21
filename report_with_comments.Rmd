@@ -16,7 +16,7 @@ fig_caption: yes
 knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA)
 ```
 
-```{r libraries,echo = FALSE ,include=FALSE, message=FALSE}
+```{r libraries,echo = FALSE , include=FALSE, message=FALSE}
 library(tidyverse)
 library(moderndive)
 library(gapminder)
@@ -240,9 +240,9 @@ auc.noyear@y.values
 
 And the area under the ROC curve, known as AUC, in our model is 0.8420448 which is greater than 0.5. It is indicated that the model performs better than a random guess.
 
-## DELEX model
+## DALEX model
 
-```{r importance}
+```{r importance, eval = FALSE, message = FALSE, warning = FALSE }
 #DELEX model to explain the importance of the variables
 #classifying the training dataset and test dataset
 wine <- as_tibble(data)
@@ -250,20 +250,20 @@ str(wine)
 id <- sample(2, nrow(wine), replace = TRUE, prob = c(0.7, 0.3))
 winetrain <- wine[id == 1,]
 winetest <- wine[id == 2,]
-
-#building the full model using GLM
-bnpoints_glm <- train(bnpoints ~., data = winetrain,
-                      method = "glm", family = "binomial")
-#explaining the model
 p_fun <- function(object, newdata){
   predict(object, newdata = newdata, type = "prob")[,2]
 }
+
+#building the full model using GLM
+bnpoints_glm <- train(bnpoints ~ country + price + year, data = winetrain,
+                      method = "glm", family = "binomial")
+#explaining the model
+
 yTest <- as.numeric(as.character(winetest$bnpoints))
 
 explainer_glm <- DALEX::explain(bnpoints_glm, label = "glm", 
                                 data = winetest, y = yTest,
                                 predict_function = p_fun)
-
 #the importance analysis of variables
 importance_glm <- variable_importance(explainer_glm, loss_function = loss_root_mean_square)
 plot(importance_glm)
