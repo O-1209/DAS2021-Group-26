@@ -197,7 +197,7 @@ plot_model(model2, show.values = TRUE, transform = NULL,
            title = "Log-Odds (instructor)", show.p = FALSE)
 ```
 
-The output above shows that the p-values of Austria, Chile, Germany and price are significant. Therefore, country of origin and the price, that is, the cost for a bottle of wine, influence whether the number of points awarded is greater than 90.
+The output above shows that the p-values of intercept, Austria, Germany and price are significant. Therefore, country of origin and the price, that is, the cost for a bottle of wine, influence whether the number of points awarded is greater than 90.
 
 ## Price against the probability of being excellent wine
 
