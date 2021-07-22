@@ -198,7 +198,7 @@ data.3 <- data %>%
   select(bnpoints, country, price) %>%
   mutate(country.new = ifelse(country == "Austria", "Austria",
                                        ifelse(country == "Germany", "Germany",
-                                               "Othercountry")))
+                                               "AAOthercountry")))
 model3 <-  glm(bnpoints ~ country.new + price, data = data.3, 
                family = binomial(link = "logit")) 
 model3 %>%
@@ -254,7 +254,7 @@ auc.3 <- performance(predict.3, measure = "auc")
 auc.3@y.values
 ```
 
-And the area under the ROC curve, known as AUC, in our model is 0.8420448 which is greater than 0.5. It is indicated that the model performs better than a random guess.
+And the area under the ROC curve, known as AUC, in our model is 0.8358092 which is greater than 0.5. It is indicated that the model performs better than a random guess.
 
 ## DALEX model
 
