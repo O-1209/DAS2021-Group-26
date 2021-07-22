@@ -90,13 +90,27 @@ model2 <- glm(bnpoints ~ country + price, data = data, family = binomial(link = 
 model2%>%
   summary()
 
+#model3 dividing the country into three parts, fitting a new model
+data.3 <- data %>%
+  select(bnpoints, country, price) %>%
+  mutate(country.new = ifelse(country == "Austria", "Austria",
+                                     ifelse(country == "Germany", "Germany",
+                                            "AAOthercountry")))
+model3 <-  glm(bnpoints ~ country.new + price, data = data.3, 
+               family = binomial(link = "logit")) 
+model3 %>%
+  summary()
+
+# Confidence Interval of odd ratio
+plot_model(model3, show.values = TRUE,
+           title = "Odds ratio", show.p = TRUE)
+
 #probability 
 #adding the predict value
-data.noyear <- data %>%
-  select(country, price, bnpoints) %>%
-  mutate(probs = fitted(model2))
-
-ggplot(data = data.noyear, aes(x = price, y = probs)) +
+data.3 <- data.3 %>%
+  mutate(probs = fitted(model3))
+#predicting result 
+ggplot(data = data.3, aes(x = price, y = probs)) +
   geom_smooth(method="glm", 
               method.args = list(family="binomial"), 
               se = FALSE) +
@@ -105,14 +119,14 @@ ggplot(data = data.noyear, aes(x = price, y = probs)) +
 #ROC plot 
 #goodness of the model
 library(ROCR)
-pro.noyear <- predict(model2, data, type = "response")
-predict.noyear <- prediction(pro.noyear, data$bnpoints)
-per.noyear <- performance(predict.noyear, measure = "tpr", x.measure = "fpr")
-plot(per.noyear, col = "red", title = "ROC plot")
+pro.3 <- predict(model3, data.3, type = "response")
+predict.3 <- prediction(pro.3, data$bnpoints)
+per.3 <- performance(predict.3, measure = "tpr", x.measure = "fpr")
+plot(per.3, col = "red", title = "ROC plot")
 
 #outputting the AUC
-auc.noyear <- performance(predict.noyear, measure = "auc")
-auc.noyear@y.values
+auc.3 <- performance(predict.3, measure = "auc")
+auc.3@y.values
 
 #DELEX model to explain the importance of the variables
 #library the package
@@ -128,7 +142,7 @@ winetrain <- wine[id == 1,]
 winetest <- wine[id == 2,]
 
 #building the full model using GLM
-bnpoints_glm <- train(bnpoints ~., data = winetrain,
+bnpoints_glm <- train(bnpoints ~country + price + year, data = winetrain,
                       method = "glm", family = "binomial")
 #explaining the model
 p_fun <- function(object, newdata){
