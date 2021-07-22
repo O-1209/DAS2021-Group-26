@@ -231,6 +231,10 @@ ggplot(data = data.3, aes(x = price, y = probs)) +
               method.args = list(family="binomial"), 
               se = FALSE) +
   labs(x = "price", y = "Probability of being Excellent wine")
+
+#plot the predicted probabilities being excellent wine against price by the country
+plot_model(model3, type = "pred", terms = c("price", "country.new"))
+
 ```
 
 From the above plot, it can be clearly seen that as the price rises, the probability of being excellent wine is gradually increasing. This is consistent with the conclusion that price influences the points of wine, which is obtained in the previous report.

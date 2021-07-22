@@ -109,12 +109,16 @@ plot_model(model3, show.values = TRUE,
 #adding the predict value
 data.3 <- data.3 %>%
   mutate(probs = fitted(model3))
+
 #predicting result 
 ggplot(data = data.3, aes(x = price, y = probs)) +
   geom_smooth(method="glm", 
               method.args = list(family="binomial"), 
               se = FALSE) +
   labs(x = "price", y = "Probability of being Excellent wine")
+
+#plot the predicted probabilities being excellent wine against price by the country
+plot_model(model3, type = "pred", terms = c("price", "country.new"))
 
 #ROC plot 
 #goodness of the model
