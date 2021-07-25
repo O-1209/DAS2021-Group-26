@@ -3,12 +3,12 @@ title: "GLM project"
 author: "Group 26"
 date: "7/19/2021"
 output:
-  html_document:
-    df_print: paged
   pdf_document:
-    latex_engine: pdflatex
+    latex_engine: xelatex
     number_sections: yes
     keep_tex: true
+  html_document:
+    df_print: paged
 fig_caption: yes
 ---
 
@@ -32,6 +32,7 @@ library(ROCR)
 library(lattice)
 library(caret)
 library(DALEX)
+library(knitr)
 ```
 
 ```{r data}
@@ -82,49 +83,49 @@ data <- na.omit(data)
 
 After removing missing data, there are 1794 types of wine to analyze. In this report, if points is 1, the quality of the wine is Excellent; if points is 0, the quality of the wine is Good. The relationship between points and prices and the relationship between points and years are presented in the following boxplots and scatter plots, respectively.
 
-```{r points.vs.price1}
+```{r points.vs.price1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:box} The boxplot of points against price"}
 #The boxplot of points against price
 ggplot(data = data, aes(x = bnpoints, y = price, group = bnpoints)) +
   geom_boxplot(fill = c("pink", "yellow")) +
-  labs(x = "Points", y = "Price", title = "The boxplot of price grouped by points") + 
+  labs(x = "Points", y = "Price") + 
   scale_x_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
   theme(legend.position = "none") 
 ```
 
 The above boxplots show that higher-priced wines are of higher quality, in general, compared to the lower-priced wines and that the prices of wines are widely distributed. There are also potentially some outliers which have quite high price, as shown by the points shown beyond the “whiskers” of the boxplots.
 
-```{r points.vs.price2}
+```{r points.vs.price2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:box} The boxplot of points against price"}
 #scatter plot
 ggplot(data = data, aes(x = price, y = bnpoints)) +
   geom_point(position = position_jitter()) +
   scale_y_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
-  labs(x = "Price", y = "Points", title = "The scatter plot of Price against Points") 
+  labs(x = "Price", y = "Points") 
 ```
 
 From the above scatter plot, we can more intuitively see that the prices of good wines are mostly concentrated in the range of 0-50, while the prices of excellent wines are higher and more widely distributed.
 
-```{r points.vs.year1}
+```{r points.vs.year1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:scat} The scatter plot of Price against Points"}
 #The boxplot of points against year
 ggplot(data = data, aes(x = bnpoints, y = year, group = bnpoints)) +
   geom_boxplot(fill = c("blue","orange")) +
-  labs(x = "Points", y = "Year", title = "The boxplot of year grouped by points") + 
+  labs(x = "Points", y = "Year") + 
   scale_x_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
   theme(legend.position = "none") 
 ```
 
 We can see that Wines with more recent vintages are of slightly better quality than wines with farther vintages. There are also potentially ten outliers (five "Good" and five "Excellent") which have very long vintages can be seen in the boxplots. Next, we plot a scatter plot to try to better observe the relationship between both of them.
 
-```{r points.vs.year2}
+```{r points.vs.year2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:scat} The scatter plot of Year against Points"}
 #scatter plot
 ggplot(data = data, aes(x = year, y = bnpoints)) +
   geom_point(position = position_jitter()) +
   scale_y_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
-  labs(x = "Year", y = "Points", title = "The scatter plot of Year against Points") 
+  labs(x = "Year", y = "Points") 
 ```
 
 There is no obvious relationship between years and points from the above scatter plot, we will further explore their relationship in the next section. The 25 country of origins are presented in the following pie chart.
 
-```{r country}
+```{r country,out.width='80%',fig.align="center",fig.cap = "\\label{fig:pie} The  percentage of countries"}
 #The pie chart
 ggplot(data = data, aes(x = factor(1), fill = country))+
   geom_bar(width = 2)+
@@ -170,7 +171,7 @@ When model is fitted to the data, the estimates of intercept $\alpha$ and coeffi
 ```{r checking}
 #Inference 
 #analysis of deviance table
-anova(model1, test = "Chi") 
+kable(anova(model1, test = "Chi"),caption = ("\\label{tab:anova} anova of deviance table"))
 #the p-value of the year is not significant, trying to fit a model omitting year variables
 ```
 
@@ -201,9 +202,8 @@ model3 %>%
   summ()
 ```
 
-```{r CI}
-plot_model(model3, show.values = TRUE,
-           title = "Odds ratio", show.p = TRUE)
+```{r CI,out.width='80%',fig.align="center",fig.cap = "\\label{fig:scat} Odds ratio"}
+plot_model(model3, show.values = TRUE, show.p = TRUE)
 ```
 
 From the odds ratios interpreted, the CI plot can be explained as follow: Austria produced wine’s odds of passing are 6.00 times those of "Anothercountry" produced wine, the Germany produced wine’s odds of passing are 2.79 times those of "Anothercountry" produced wine. And for every unit increase in price, the points wine’s odds of passing are 1.05 times those of the cheaper one.
@@ -214,7 +214,7 @@ Therefore, country of origin and the price, that is, the cost for a bottle of wi
 
 In this step, we add the variable `Probs` to the data, which is the probability of being excellent wine. The estimated probabilities can also produced by age as follows:
 
-```{r probability}
+```{r probability,out.width='80%',fig.align="center",fig.cap = "\\label{fig:prob} predicting result "}
 #probability 
 #adding the predict value
 data.3 <- data.3 %>%
@@ -225,6 +225,9 @@ ggplot(data = data.3, aes(x = price, y = probs)) +
               method.args = list(family="binomial"), 
               se = FALSE) +
   labs(x = "price", y = "Probability of being Excellent wine")
+
+```
+```{r,out.width='80%',fig.align="center",fig.cap = "\\label{fig:prob2} predicted probabilities being excellent wine against price by the country "}
 #plot the predicted probabilities being excellent wine against price by the country
 plot_model(model3, type = "pred", terms = c("price", "country.new"))
 ```
@@ -235,7 +238,7 @@ From the above plot, it can be clearly seen that as the price rises, the probabi
 
 In this section, we access the predictive power of the selected model2, which contains two explanatory variables `country` and `price`, by looking at the ROC curve and AUC value. The ROC curve for the model fitted to our data as follow:
 
-```{r ROC}
+```{r ROC,fig.align="center",fig.cap = "\\label{fig:prob2} ROC curve "}
 #ROC plot 
 #goodness of the model
 pro.3 <- predict(model3, data.3, type = "response")
@@ -256,31 +259,6 @@ And the area under the ROC curve, known as AUC, in our model is 0.8358092 which 
 
 In this section, we divide the data set into training set and test set and use a machine learning method via package caret and DALEX, in order to explain the importance of the variables. In the model, `country`, `price` and `year` are explanatory variables; `points` are response variable. The loss function applied in the code is the Root Mean Square Error (RMSE), which is interpreted as how much the absence of this variable will affect the predicted value of the response variable. The plot that visualises the GLM model exploration is shown below:
 
-```{r importance, message = FALSE, warning = FALSE }
-#DELEX model to explain the importance of the variables
-#classifying the training dataset and test dataset
-wine <- as_tibble(data)
-str(wine)
-id <- sample(2, nrow(wine), replace = TRUE, prob = c(0.7, 0.3))
-winetrain <- wine[id == 1,]
-winetest <- wine[id == 2,]
-p_fun <- function(object, newdata){
-  predict(object, newdata = newdata, type = "prob")[,2]
-}
-#building the full model using GLM
-bnpoints_glm <- train(bnpoints ~ country + price + year, data = winetrain,
-                      method = "glm", family = "binomial")
-#explaining the model
-yTest <- as.numeric(as.character(winetest$bnpoints))
-explainer_glm <- DALEX::explain(bnpoints_glm, label = "glm", 
-                                data = winetest, y = yTest,
-                                predict_function = p_fun)
-#the importance analysis of variables
-importance_glm <- variable_importance(explainer_glm, loss_function = loss_root_mean_square)
-plot(importance_glm)
-```
-
-From the importance analysis of variables plot, obviously, `price` and `country` have a greater influence on the `points`, especially `price`, whose RMSE of price is greater than 0.5. However, the `year` and other variables' RMSE are almost close to 0, which means that the variables excepting from `price` and `country` have few impact on the `points`. 
 
 # Conclusion and Further Task {#sec:Conc}
 
