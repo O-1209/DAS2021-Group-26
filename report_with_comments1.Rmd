@@ -3,12 +3,12 @@ title: "GLM project"
 author: "Group 26"
 date: "7/19/2021"
 output:
-  html_document:
-    df_print: paged
   pdf_document:
-    latex_engine: pdflatex
+    latex_engine: xelatex
     number_sections: yes
     keep_tex: true
+  html_document:
+    df_print: paged
 fig_caption: yes
 ---
 
@@ -32,6 +32,7 @@ library(ROCR)
 library(lattice)
 library(caret)
 library(DALEX)
+library(knitr)
 ```
 
 ```{r data}
@@ -44,18 +45,6 @@ data <- read.csv("dataset26.csv")
 The ratings (the number of points awarded for the wine on a scale of 1-100) on a variety of wines are very different, due to many factors, such as different country, price, province, title, variety, winery, etc. This report will present numerical and graphical summaries of properties of wine and use a Generalised Linear Model (GLM) to explore the factors influencing the number of points awarded.
 
 ## Data sources & research questions
-
-All the data comes from the WineEnthusiast. In the dataset, 3 explanatory variables were selected to investigate which properties of wine influence whether the number of points awarded is greater than 90. The variables are:
-
-- `country`: country of origin;
-- `price`: the cost for a bottle of wine;
-- `year`: extract from the `title` of the wine review in Section \ref{sec:EDA}.
-
-Our team select the `bnpoints` as the response variable, which is transformed from the `points` in Section  \ref{sec:EDA}.
-
-# Exploratory Data Analysis {#sec:EDA}
-
-Before starting to analyze the data, we first generate two new variables `year` and `bnpoints` based on the original dataset. Among them, `year` is extracted from the variable `title`, and `bnpoints` is a binary variable. Wines with a score greater than 90 are recorded as 1, and wines with a score less than or equal to 90 are recorded as 0. Next, delete outliers and missing values.
 
 ```{r data.processing}
 data <- data[,2:8]  #deleting the first line
@@ -71,6 +60,26 @@ data$bnpoints <- as.factor(data$bnpoints)
 data$year <- data$title
 data$year <- str_replace_all(data$year, "[[:punct:]]", " ")
 data$year <- str_extract(data$year,"[0-9]{4}") #extracting year with four digits 
+```
+
+All the data comes from the WineEnthusiast. There are 8 varaibles, the explanations of the variables as following: 
+
+- `country`: country of origin;
+- `points`: the number of points awarded for the wine on the scale of 1-100; 
+- `price`: the cost for a bottle of wine;
+- `year`: extract from the `title` of the wine review in Section \ref{sec:EDA};
+- `province`: the province of state the wine is from;
+- `title`: the title of the wine review;
+- `variety`: the type of grape;
+- `winery`: the winery that made the wine.
+
+In our report, we select the `bnpoints` as the response variable, which is transformed from the `points` in Section \ref{sec:EDA}. The variables `province`, `variety` and `winery` are excluded as there are too many categories, and there would be more parameters than observations in the model. Therefore, we select `country`, `price` and `year` as explanatory variables.
+
+# Exploratory Data Analysis {#sec:EDA}
+
+Before starting to analyze the data, we first generate two new variables `year` and `bnpoints` based on the original dataset. Among them, `year` is extracted from the variable `title`, and `bnpoints` is a binary variable. Wines with a score greater than 90 are recorded as 1, and wines with a score less than or equal to 90 are recorded as 0. Next, delete outliers and missing values.
+
+```{r data.processing.2}
 #omiting abnormal year
 data <- data %>%
   filter(year > 1900)
@@ -82,49 +91,49 @@ data <- na.omit(data)
 
 After removing missing data, there are 1794 types of wine to analyze. In this report, if points is 1, the quality of the wine is Excellent; if points is 0, the quality of the wine is Good. The relationship between points and prices and the relationship between points and years are presented in the following boxplots and scatter plots, respectively.
 
-```{r points.vs.price1}
+```{r points.vs.price1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:box1} The boxplot of points against price"}
 #The boxplot of points against price
 ggplot(data = data, aes(x = bnpoints, y = price, group = bnpoints)) +
   geom_boxplot(fill = c("pink", "yellow")) +
-  labs(x = "Points", y = "Price", title = "The boxplot of price grouped by points") + 
+  labs(x = "Points", y = "Price") + 
   scale_x_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
   theme(legend.position = "none") 
 ```
 
-The above boxplots show that higher-priced wines are of higher quality, in general, compared to the lower-priced wines and that the prices of wines are widely distributed. There are also potentially some outliers which have quite high price, as shown by the points shown beyond the “whiskers” of the boxplots.
+The above boxplots \ref{fig:box1} show that higher-priced wines are of higher quality, in general, compared to the lower-priced wines and there is not overlap between "Good" and "Excellent". The prices of wines are widely distributed. There are also potentially some outliers which have quite high price, as shown by the points shown beyond the “whiskers” of the boxplots.
 
-```{r points.vs.price2}
+```{r points.vs.price2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:box2} The boxplot of points against price"}
 #scatter plot
 ggplot(data = data, aes(x = price, y = bnpoints)) +
   geom_point(position = position_jitter()) +
   scale_y_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
-  labs(x = "Price", y = "Points", title = "The scatter plot of Price against Points") 
+  labs(x = "Price", y = "Points") 
 ```
 
-From the above scatter plot, we can more intuitively see that the prices of good wines are mostly concentrated in the range of 0-50, while the prices of excellent wines are higher and more widely distributed.
+From the figure \ref{fig:scat}, we can more intuitively see that the prices of good wines are mostly concentrated in the range of 0-50, while the prices of excellent wines are higher and more widely distributed.
 
-```{r points.vs.year1}
+```{r points.vs.year1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:scat} The scatter plot of Price against Points"}
 #The boxplot of points against year
 ggplot(data = data, aes(x = bnpoints, y = year, group = bnpoints)) +
   geom_boxplot(fill = c("blue","orange")) +
-  labs(x = "Points", y = "Year", title = "The boxplot of year grouped by points") + 
+  labs(x = "Points", y = "Year") + 
   scale_x_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
   theme(legend.position = "none") 
 ```
 
 We can see that Wines with more recent vintages are of slightly better quality than wines with farther vintages. There are also potentially ten outliers (five "Good" and five "Excellent") which have very long vintages can be seen in the boxplots. Next, we plot a scatter plot to try to better observe the relationship between both of them.
 
-```{r points.vs.year2}
+```{r points.vs.year2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:scat} The scatter plot of Year against Points"}
 #scatter plot
 ggplot(data = data, aes(x = year, y = bnpoints)) +
   geom_point(position = position_jitter()) +
   scale_y_discrete("Points", labels = c("0" = "Good", "1" = "Excellent")) +
-  labs(x = "Year", y = "Points", title = "The scatter plot of Year against Points") 
+  labs(x = "Year", y = "Points") 
 ```
 
 There is no obvious relationship between years and points from the above scatter plot, we will further explore their relationship in the next section. The 25 country of origins are presented in the following pie chart.
 
-```{r country}
+```{r country,out.width='80%',fig.align="center",fig.cap = "\\label{fig:pie} The  percentage of countries"}
 #The pie chart
 ggplot(data = data, aes(x = factor(1), fill = country))+
   geom_bar(width = 2)+
@@ -162,7 +171,7 @@ At first, fitting all of the variables in the model1, and the output is shown be
 model1 <- glm(bnpoints ~ country + price + year,
              data=data, family=binomial(link = "logit"))
 model1%>%
-  summ() 
+  summ()
 ```
 
 When model is fitted to the data, the estimates of intercept $\alpha$ and coefficient $\beta$ are returned and the AIC in model1 is 1634.7. In order to decide whether the above variables should be retained, analysis of deviance table are presented as follow.
@@ -170,7 +179,7 @@ When model is fitted to the data, the estimates of intercept $\alpha$ and coeffi
 ```{r checking}
 #Inference 
 #analysis of deviance table
-anova(model1, test = "Chi") 
+kable(anova(model1, test = "Chi"),caption = ("\\label{tab:anova} anova of deviance table"))
 #the p-value of the year is not significant, trying to fit a model omitting year variables
 ```
 
@@ -187,7 +196,9 @@ model2%>%
   summ()
 ```
 
-The output above shows that the p-values of intercept, Austria, Germany and price are significant. Therefore, we set other countries without Austria and Germany as baseline named "Anothercountry" in model3 to further explore the influence of `country` variable on the `points` to make up for the lack of model2.
+The output above shows that the p-values of intercept, Austria, Germany and price are significant. Therefore, we set other countries without Austria and Germany as baseline named "Anothercountry" in model3 to further explore the influence of `country` variable on the `points` to make up for the lack of model2. The formula can be written as:
+
+$$\ln(\frac{p}{1-p}) = \alpha + \beta_1 \cdot \mathbb{I}_{Austria} + \beta_{2} \cdot \mathbb{I}_{Germany} + \beta_{3} \cdot X_{price} + \epsilon, ~~~~ \epsilon \sim N(0,\sigma^2).$$
 
 ```{r model3}
 data.3 <- data %>%
@@ -201,9 +212,8 @@ model3 %>%
   summ()
 ```
 
-```{r CI}
-plot_model(model3, show.values = TRUE,
-           title = "Odds ratio", show.p = TRUE)
+```{r CI,out.width='80%',fig.align="center",fig.cap = "\\label{fig:scat} Odds ratio"}
+plot_model(model3, show.values = TRUE, show.p = TRUE)
 ```
 
 From the odds ratios interpreted, the CI plot can be explained as follow: Austria produced wine’s odds of passing are 6.00 times those of "Anothercountry" produced wine, the Germany produced wine’s odds of passing are 2.79 times those of "Anothercountry" produced wine. And for every unit increase in price, the points wine’s odds of passing are 1.05 times those of the cheaper one.
@@ -214,7 +224,7 @@ Therefore, country of origin and the price, that is, the cost for a bottle of wi
 
 In this step, we add the variable `Probs` to the data, which is the probability of being excellent wine. The estimated probabilities can also produced by age as follows:
 
-```{r probability}
+```{r probability,out.width='80%',fig.align="center",fig.cap = "\\label{fig:prob} predicting result "}
 #probability 
 #adding the predict value
 data.3 <- data.3 %>%
@@ -225,17 +235,19 @@ ggplot(data = data.3, aes(x = price, y = probs)) +
               method.args = list(family="binomial"), 
               se = FALSE) +
   labs(x = "price", y = "Probability of being Excellent wine")
+```
+```{r,out.width='80%',fig.align="center",fig.cap = "\\label{fig:prob2} predicted probabilities being excellent wine against price by the country "}
 #plot the predicted probabilities being excellent wine against price by the country
 plot_model(model3, type = "pred", terms = c("price", "country.new"))
 ```
 
-From the above plot, it can be clearly seen that as the price rises, the probability of being excellent wine is gradually increasing. And the points of wine produced in Austria and Germany would be higher. This is consistent with the conclusion that price influences the points of wine, which is obtained in the previous report.
+From the two above plot, it can be clearly seen that as the price rises, the probability of being excellent wine is gradually increasing. And the points of wine produced in Austria and Germany would be higher. This is consistent with the conclusion that price influences the points of wine, which is obtained in the previous report.
 
 ## ROC and AUC
 
-In this section, we access the predictive power of the selected model2, which contains two explanatory variables `country` and `price`, by looking at the ROC curve and AUC value. The ROC curve for the model fitted to our data as follow:
+In this section, we access the predictive power of the selected model3, which contains two explanatory variables `country` and `price`, by looking at the ROC curve and AUC value. The ROC curve for the model fitted to our data as follow:
 
-```{r ROC}
+```{r ROC,fig.align="center",fig.cap = "\\label{fig:prob2} ROC curve "}
 #ROC plot 
 #goodness of the model
 pro.3 <- predict(model3, data.3, type = "response")
@@ -244,49 +256,19 @@ per.3 <- performance(predict.3, measure = "tpr", x.measure = "fpr")
 plot(per.3, col = "red", title = "ROC plot")
 ```
 
-```{r AUC}
+```{r AUC, warning = FALSE, message = FALSE}
 #outputting the AUC
 auc.3 <- performance(predict.3, measure = "auc")
 auc.3@y.values
 ```
 
-And the area under the ROC curve, known as AUC, in our model is 0.8358092 which is greater than 0.5. It is indicated that the model performs better than a random guess.
-
-## The importance of variables
-
-In this section, we divide the data set into training set and test set and use a machine learning method via package caret and DALEX, in order to explain the importance of the variables. In the model, `country`, `price` and `year` are explanatory variables; `points` are response variable. The loss function applied in the code is the Root Mean Square Error (RMSE), which is interpreted as how much the absence of this variable will affect the predicted value of the response variable. The plot that visualises the GLM model exploration is shown below:
-
-```{r importance, message = FALSE, warning = FALSE }
-#DELEX model to explain the importance of the variables
-#classifying the training dataset and test dataset
-wine <- as_tibble(data)
-str(wine)
-id <- sample(2, nrow(wine), replace = TRUE, prob = c(0.7, 0.3))
-winetrain <- wine[id == 1,]
-winetest <- wine[id == 2,]
-p_fun <- function(object, newdata){
-  predict(object, newdata = newdata, type = "prob")[,2]
-}
-#building the full model using GLM
-bnpoints_glm <- train(bnpoints ~ country + price + year, data = winetrain,
-                      method = "glm", family = "binomial")
-#explaining the model
-yTest <- as.numeric(as.character(winetest$bnpoints))
-explainer_glm <- DALEX::explain(bnpoints_glm, label = "glm", 
-                                data = winetest, y = yTest,
-                                predict_function = p_fun)
-#the importance analysis of variables
-importance_glm <- variable_importance(explainer_glm, loss_function = loss_root_mean_square)
-plot(importance_glm)
-```
-
-From the importance analysis of variables plot, obviously, `price` and `country` have a greater influence on the `points`, especially `price`, whose RMSE of price is greater than 0.5. However, the `year` and other variables' RMSE are almost close to 0, which means that the variables excepting from `price` and `country` have few impact on the `points`. 
+And the area under the ROC curve, known as AUC, in our model is 0.8358092 which is greater than 0.5. It is reasonable considering that we have only uesd two of the predictors available in the dataset.
 
 # Conclusion and Further Task {#sec:Conc}
 
 ## Conclusion
 
-In summary, based on the GLM model, this report proved that country and price influence whether the number of points awarded is greater than 90. The increase in price is positively associated with points, and points are also influenced by countries. For example, wines of origin in Austria and Germany are usually of better quality.
+In summary, in the report we firstly divided the point variable into two parts, the point (`bnpoints`) which is greater than 90 is recorded as 1 and lower than 90 as 0. Based on the point variable, the binary response, we select `year`, `country` and `price` as predictor, building an initial generalized linear model. We then do some model adjustment, deleting the `year` variable in the GLM and creating a new Country variable(`country.new`containing three categories Austria, Germany and other country), in order to make more model parameters significant and good fitness of model. In the end, this report proved that there are two variables that `country` and `price` mostly influence whether the number of points awarded is greater than 90. The increase in price is positively associated with points, and points are also influenced by different countries. For example, wines of origin in Austria and Germany are usually of better quality, however, there may have a negative influence on the wine quality if wines are from other countries.
 
 ## Further task
 
