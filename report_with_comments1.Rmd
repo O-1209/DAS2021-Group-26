@@ -162,7 +162,7 @@ At first, fitting all of the variables in the model1, and the output is shown be
 model1 <- glm(bnpoints ~ country + price + year,
              data=data, family=binomial(link = "logit"))
 model1%>%
-  summ()
+  summ() 
 ```
 
 When model is fitted to the data, the estimates of intercept $\alpha$ and coefficient $\beta$ are returned and the AIC in model1 is 1634.7. In order to decide whether the above variables should be retained, analysis of deviance table are presented as follow.
