@@ -1,7 +1,7 @@
 ---
 title: "GLM project"
 author: "Group 26"
-date: "7/19/2021"
+date: "7/25/2021"
 output:
   pdf_document:
     latex_engine: xelatex
@@ -91,7 +91,7 @@ data <- na.omit(data)
 
 After removing missing data, there are 1794 types of wine to analyze. In this report, if points is 1, the quality of the wine is Excellent; if points is 0, the quality of the wine is Good. The relationship between points and prices and the relationship between points and years are presented in the following boxplots and scatter plots, respectively.
 
-```{r points.vs.price1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:box1} The boxplot of points against price"}
+```{r points.vs.price1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig1} The boxplot of points against price"}
 #The boxplot of points against price
 ggplot(data = data, aes(x = bnpoints, y = price, group = bnpoints)) +
   geom_boxplot(fill = c("pink", "yellow")) +
@@ -100,9 +100,9 @@ ggplot(data = data, aes(x = bnpoints, y = price, group = bnpoints)) +
   theme(legend.position = "none") 
 ```
 
-The above boxplots \ref{fig:box1} show that higher-priced wines are of higher quality, in general, compared to the lower-priced wines and there is not overlap between "Good" and "Excellent". The prices of wines are widely distributed. There are also potentially some outliers which have quite high price, as shown by the points shown beyond the “whiskers” of the boxplots.
+The above figure \ref{fig:fig1} show that higher-priced wines are of higher quality, in general, compared to the lower-priced wines and there is not overlap between "Good" and "Excellent". The prices of wines are widely distributed. There are also potentially some outliers which have quite high price, as shown by the points shown beyond the “whiskers” of the boxplots.
 
-```{r points.vs.price2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:box2} The boxplot of points against price"}
+```{r points.vs.price2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig2} The boxplot of points against price"}
 #scatter plot
 ggplot(data = data, aes(x = price, y = bnpoints)) +
   geom_point(position = position_jitter()) +
@@ -110,9 +110,9 @@ ggplot(data = data, aes(x = price, y = bnpoints)) +
   labs(x = "Price", y = "Points") 
 ```
 
-From the figure \ref{fig:scat}, we can more intuitively see that the prices of good wines are mostly concentrated in the range of 0-50, while the prices of excellent wines are higher and more widely distributed.
+From the figure \ref{fig:fig2}, we can more intuitively see that the prices of good wines are mostly concentrated in the range of 0-50, while the prices of excellent wines are higher and more widely distributed.
 
-```{r points.vs.year1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:scat} The scatter plot of Price against Points"}
+```{r points.vs.year1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig3} The scatter plot of Price against Points"}
 #The boxplot of points against year
 ggplot(data = data, aes(x = bnpoints, y = year, group = bnpoints)) +
   geom_boxplot(fill = c("blue","orange")) +
@@ -121,9 +121,9 @@ ggplot(data = data, aes(x = bnpoints, y = year, group = bnpoints)) +
   theme(legend.position = "none") 
 ```
 
-We can see that Wines with more recent vintages are of slightly better quality than wines with farther vintages. There are also potentially ten outliers (five "Good" and five "Excellent") which have very long vintages can be seen in the boxplots. Next, we plot a scatter plot to try to better observe the relationship between both of them.
+We can see that Wines with more recent vintages are of slightly better quality than wines with farther vintages. There are also potentially ten outliers (five "Good" and five "Excellent") which have very long vintages can be seen in the figure \ref{fig:fig3}. Next, we plot a scatter plot to try to better observe the relationship between both of them.
 
-```{r points.vs.year2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:scat} The scatter plot of Year against Points"}
+```{r points.vs.year2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig4} The scatter plot of Year against Points"}
 #scatter plot
 ggplot(data = data, aes(x = year, y = bnpoints)) +
   geom_point(position = position_jitter()) +
@@ -131,16 +131,16 @@ ggplot(data = data, aes(x = year, y = bnpoints)) +
   labs(x = "Year", y = "Points") 
 ```
 
-There is no obvious relationship between years and points from the above scatter plot, we will further explore their relationship in the next section. The 25 country of origins are presented in the following pie chart.
+There is no obvious relationship between years and points from the figure \ref{fig:fig4}, we will further explore their relationship in the next section. The 25 country of origins are presented in the following pie chart.
 
-```{r country,out.width='80%',fig.align="center",fig.cap = "\\label{fig:pie} The  percentage of countries"}
+```{r country,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig5} The  percentage of countries"}
 #The pie chart
 ggplot(data = data, aes(x = factor(1), fill = country))+
   geom_bar(width = 2)+
   coord_polar("y")
 ```
 
-As can be seen from the pie chart above, wines originating in the US account for nearly half of the total observations.
+As can be seen from the figure \ref{fig:fig5}, wines originating in the US account for nearly half of the total observations.
 
 # Formal Data Analysis {#sec:FDA}
 
@@ -212,11 +212,11 @@ model3 %>%
   summ()
 ```
 
-```{r CI,out.width='80%',fig.align="center",fig.cap = "\\label{fig:scat} Odds ratio"}
+```{r CI,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig6} Odds ratio"}
 plot_model(model3, show.values = TRUE, show.p = TRUE)
 ```
 
-From the odds ratios interpreted, the CI plot can be explained as follow: Austria produced wine’s odds of passing are 6.00 times those of "Anothercountry" produced wine, the Germany produced wine’s odds of passing are 2.79 times those of "Anothercountry" produced wine. And for every unit increase in price, the points wine’s odds of passing are 1.05 times those of the cheaper one.
+From the odds ratios interpreted, the CI plot (figure \ref{fig:fig6}) can be explained as follow: Austria produced wine’s odds of passing are 6.00 times those of "Anothercountry" produced wine, the Germany produced wine’s odds of passing are 2.79 times those of "Anothercountry" produced wine. And for every unit increase in price, the points wine’s odds of passing are 1.05 times those of the cheaper one.
  
 Therefore, country of origin and the price, that is, the cost for a bottle of wine, influence whether the number of points awarded is greater than 90.
 
@@ -224,7 +224,7 @@ Therefore, country of origin and the price, that is, the cost for a bottle of wi
 
 In this step, we add the variable `Probs` to the data, which is the probability of being excellent wine. The estimated probabilities can also produced by age as follows:
 
-```{r probability,out.width='80%',fig.align="center",fig.cap = "\\label{fig:prob} predicting result "}
+```{r probability,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig7} predicting result "}
 #probability 
 #adding the predict value
 data.3 <- data.3 %>%
@@ -236,7 +236,7 @@ ggplot(data = data.3, aes(x = price, y = probs)) +
               se = FALSE) +
   labs(x = "price", y = "Probability of being Excellent wine")
 ```
-```{r,out.width='80%',fig.align="center",fig.cap = "\\label{fig:prob2} predicted probabilities being excellent wine against price by the country "}
+```{r,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig8} predicted probabilities being excellent wine against price by the country "}
 #plot the predicted probabilities being excellent wine against price by the country
 plot_model(model3, type = "pred", terms = c("price", "country.new"))
 ```
@@ -247,7 +247,7 @@ From the two above plot, it can be clearly seen that as the price rises, the pro
 
 In this section, we access the predictive power of the selected model3, which contains two explanatory variables `country` and `price`, by looking at the ROC curve and AUC value. The ROC curve for the model fitted to our data as follow:
 
-```{r ROC,fig.align="center",fig.cap = "\\label{fig:prob2} ROC curve "}
+```{r ROC,fig.align="center",fig.cap = "\\label{fig:fig9} ROC curve "}
 #ROC plot 
 #goodness of the model
 pro.3 <- predict(model3, data.3, type = "response")
