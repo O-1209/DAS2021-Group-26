@@ -33,6 +33,7 @@ library(lattice)
 library(caret)
 library(DALEX)
 library(knitr)
+library(stargazer)
 ```
 
 ```{r data}
@@ -48,8 +49,6 @@ The ratings (the number of points awarded for the wine on a scale of 1-100) on a
 
 ```{r data.processing}
 data <- data[,2:8]  #deleting the first line
-#glimpse data 
-str(data)
 # data processing 
 # trans to binary
 data$bnpoints[data$points > 90] <- 1 
@@ -60,9 +59,11 @@ data$bnpoints <- as.factor(data$bnpoints)
 data$year <- data$title
 data$year <- str_replace_all(data$year, "[[:punct:]]", " ")
 data$year <- str_extract(data$year,"[0-9]{4}") #extracting year with four digits 
+#glimpse data 
+str(data)
 ```
 
-All the data comes from the WineEnthusiast. There are 8 varaibles, the explanations of the variables as following: 
+All the data comes from the WineEnthusiast. There are 9 varaibles, the explanations of the variables as following: 
 
 - `country`: country of origin;
 - `points`: the number of points awarded for the wine on the scale of 1-100; 
@@ -77,7 +78,7 @@ In our report, we select the `bnpoints` as the response variable, which is trans
 
 # Exploratory Data Analysis {#sec:EDA}
 
-Before starting to analyze the data, we first generate two new variables `year` and `bnpoints` based on the original dataset. Among them, `year` is extracted from the variable `title`, and `bnpoints` is a binary variable. Wines with a score greater than 90 are recorded as 1, and wines with a score less than or equal to 90 are recorded as 0. Next, delete outliers and missing values.
+Before starting to analyze the data, we first generate two new variables `year` and `bnpoints` based on the original dataset. Among them, `year` is extracted from the variable `title`, and `bnpoints` is a binary variable. Wines with a score greater than 90 are recorded as 1, and wines with a score less than or equal to 90 are recorded as 0. Next, we delete outliers and missing values.
 
 ```{r data.processing.2}
 #omiting abnormal year
@@ -91,7 +92,7 @@ data <- na.omit(data)
 
 After removing missing data, there are 1794 types of wine to analyze. In this report, if points is 1, the quality of the wine is Excellent; if points is 0, the quality of the wine is Good. The relationship between points and prices and the relationship between points and years are presented in the following boxplots and scatter plots, respectively.
 
-```{r points.vs.price1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig1} The boxplot of points against price"}
+```{r points.vs.price1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig1} The boxplot of points against price", fig.pos = 'H'}
 #The boxplot of points against price
 ggplot(data = data, aes(x = bnpoints, y = price, group = bnpoints)) +
   geom_boxplot(fill = c("pink", "yellow")) +
@@ -102,7 +103,7 @@ ggplot(data = data, aes(x = bnpoints, y = price, group = bnpoints)) +
 
 The above figure \ref{fig:fig1} show that higher-priced wines are of higher quality, in general, compared to the lower-priced wines and there is not overlap between "Good" and "Excellent". The prices of wines are widely distributed. There are also potentially some outliers which have quite high price, as shown by the points shown beyond the “whiskers” of the boxplots.
 
-```{r points.vs.price2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig2} The boxplot of points against price"}
+```{r points.vs.price2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig2} The boxplot of points against price", fig.pos = 'H'}
 #scatter plot
 ggplot(data = data, aes(x = price, y = bnpoints)) +
   geom_point(position = position_jitter()) +
@@ -112,7 +113,7 @@ ggplot(data = data, aes(x = price, y = bnpoints)) +
 
 From the figure \ref{fig:fig2}, we can more intuitively see that the prices of good wines are mostly concentrated in the range of 0-50, while the prices of excellent wines are higher and more widely distributed.
 
-```{r points.vs.year1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig3} The scatter plot of Price against Points"}
+```{r points.vs.year1,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig3} The scatter plot of Price against Points", fig.pos = 'H'}
 #The boxplot of points against year
 ggplot(data = data, aes(x = bnpoints, y = year, group = bnpoints)) +
   geom_boxplot(fill = c("blue","orange")) +
@@ -123,7 +124,7 @@ ggplot(data = data, aes(x = bnpoints, y = year, group = bnpoints)) +
 
 We can see that Wines with more recent vintages are of slightly better quality than wines with farther vintages. There are also potentially ten outliers (five "Good" and five "Excellent") which have very long vintages can be seen in the figure \ref{fig:fig3}. Next, we plot a scatter plot to try to better observe the relationship between both of them.
 
-```{r points.vs.year2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig4} The scatter plot of Year against Points"}
+```{r points.vs.year2,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig4} The scatter plot of Year against Points", fig.pos = 'H'}
 #scatter plot
 ggplot(data = data, aes(x = year, y = bnpoints)) +
   geom_point(position = position_jitter()) +
@@ -131,9 +132,9 @@ ggplot(data = data, aes(x = year, y = bnpoints)) +
   labs(x = "Year", y = "Points") 
 ```
 
-There is no obvious relationship between years and points from the figure \ref{fig:fig4}, we will further explore their relationship in the next section. The 25 country of origins are presented in the following pie chart.
+There is no obvious relationship between years and points from the figure \ref{fig:fig4}, we will further explore their relationship in the next section. The visualization summary of 25 country of origins are presented in the following pie chart.
 
-```{r country,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig5} The  percentage of countries"}
+```{r country,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig5} The  percentage of countries", fig.pos = 'H'}
 #The pie chart
 ggplot(data = data, aes(x = factor(1), fill = country))+
   geom_bar(width = 2)+
@@ -171,7 +172,7 @@ At first, fitting all of the variables in the model1, and the output is shown be
 model1 <- glm(bnpoints ~ country + price + year,
              data=data, family=binomial(link = "logit"))
 model1%>%
-  summ()
+  summ() 
 ```
 
 When model is fitted to the data, the estimates of intercept $\alpha$ and coefficient $\beta$ are returned and the AIC in model1 is 1634.7. In order to decide whether the above variables should be retained, analysis of deviance table are presented as follow.
@@ -192,15 +193,15 @@ Next, fitting variables country and price in the model2.
 ```{r model2}
 #the model2: bnpoints ~ price + country
 model2 <- glm(bnpoints ~ country + price, data = data, family = binomial(link = "logit"))
-model2%>%
+model2 %>%
   summ()
 ```
 
-The output above shows that the p-values of intercept, Austria, Germany and price are significant. Therefore, we set other countries without Austria and Germany as baseline named "Anothercountry" in model3 to further explore the influence of `country` variable on the `points` to make up for the lack of model2. The formula can be written as:
+The output above shows that the p-values of intercept, Austria, Germany and price are significant. Therefore, we then create a new variable named `country.new`, which contain 3 categories: Austria, Germany and other countries，then setting other countries without Austria and Germany as baseline named "Anothercountry" in model3 to further explore the influence of `country` variable on the `points` to make up for the lack of model2. The formula can be written as:
 
 $$\ln(\frac{p}{1-p}) = \alpha + \beta_1 \cdot \mathbb{I}_{Austria} + \beta_{2} \cdot \mathbb{I}_{Germany} + \beta_{3} \cdot X_{price} + \epsilon, ~~~~ \epsilon \sim N(0,\sigma^2).$$
 
-```{r model3}
+```{r model3, results='asis'}
 data.3 <- data %>%
   select(bnpoints, country, price) %>%
   mutate(country.new = ifelse(country == "Austria", "Austria",
@@ -208,23 +209,23 @@ data.3 <- data %>%
                                                "Anothercountry")))
 model3 <-  glm(bnpoints ~ country.new + price, data = data.3, 
                family = binomial(link = "logit")) 
-model3 %>%
-  summ()
+
+stargazer(model3, title = "The result of final GLM model", header = F) 
 ```
 
-```{r CI,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig6} Odds ratio"}
+```{r CI,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig6} Odds ratio", fig.pos = 'H'}
 plot_model(model3, show.values = TRUE, show.p = TRUE)
 ```
 
-From the odds ratios interpreted, the CI plot (figure \ref{fig:fig6}) can be explained as follow: Austria produced wine’s odds of passing are 6.00 times those of "Anothercountry" produced wine, the Germany produced wine’s odds of passing are 2.79 times those of "Anothercountry" produced wine. And for every unit increase in price, the points wine’s odds of passing are 1.05 times those of the cheaper one.
+From the odds ratios interpreted, the CI plot (figure \ref{fig:fig6}) can be explained as follow: Austria produced wine’s odds of  being  excellent are 6.00 times those of "Anothercountry" produced wine, the Germany produced wine’s odds of being excellent are 2.79 times those of "Anothercountry" produced wine. And for every unit increase in price, the points wine’s odds of  being excellent are 1.05 times those of the cheaper one.
  
 Therefore, country of origin and the price, that is, the cost for a bottle of wine, influence whether the number of points awarded is greater than 90.
 
-## Price against the probability of being excellent wine
+## Predictive probability of being excellent wine
 
-In this step, we add the variable `Probs` to the data, which is the probability of being excellent wine. The estimated probabilities can also produced by age as follows:
+In this step, we add the variable `Probs` to the data, which is the predictive probability of being excellent wine. The estimated probabilities can also produced by age as follows:
 
-```{r probability,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig7} predicting result "}
+```{r probability,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig7} predicting result ",  fig.pos = 'H'}
 #probability 
 #adding the predict value
 data.3 <- data.3 %>%
@@ -236,18 +237,19 @@ ggplot(data = data.3, aes(x = price, y = probs)) +
               se = FALSE) +
   labs(x = "price", y = "Probability of being Excellent wine")
 ```
-```{r,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig8} predicted probabilities being excellent wine against price by the country "}
+
+```{r,out.width='80%',fig.align="center",fig.cap = "\\label{fig:fig8} predicted probabilities being excellent wine against price by the country ",  fig.pos = 'H'}
 #plot the predicted probabilities being excellent wine against price by the country
 plot_model(model3, type = "pred", terms = c("price", "country.new"))
 ```
 
-From the two above plot, it can be clearly seen that as the price rises, the probability of being excellent wine is gradually increasing. And the points of wine produced in Austria and Germany would be higher. This is consistent with the conclusion that price influences the points of wine, which is obtained in the previous report.
+From figure \ref{fig:fig7} and \ref{fig:fig8}, it can be clearly seen that as the price rises, the probability of being excellent wine is gradually increasing. And the points of wine produced in Austria and Germany would be higher. This is consistent with the conclusion that price influences the points of wine, which is obtained in the previous report.
 
 ## ROC and AUC
 
-In this section, we access the predictive power of the selected model3, which contains two explanatory variables `country` and `price`, by looking at the ROC curve and AUC value. The ROC curve for the model fitted to our data as follow:
+In this section, we access the predictive power of the selected model3, which contains two explanatory variables `country` and `price`, by looking at the ROC curve and AUC value. The ROC curve for the model fitted to our data in figure \ref{fig:fig9}:
 
-```{r ROC,fig.align="center",fig.cap = "\\label{fig:fig9} ROC curve "}
+```{r ROC,fig.align="center",fig.cap = "\\label{fig:fig9} ROC curve ", fig.pos = 'H'}
 #ROC plot 
 #goodness of the model
 pro.3 <- predict(model3, data.3, type = "response")
@@ -256,7 +258,7 @@ per.3 <- performance(predict.3, measure = "tpr", x.measure = "fpr")
 plot(per.3, col = "red", title = "ROC plot")
 ```
 
-```{r AUC, warning = FALSE, message = FALSE}
+```{r AUC, include = FALSE}
 #outputting the AUC
 auc.3 <- performance(predict.3, measure = "auc")
 auc.3@y.values
@@ -272,4 +274,4 @@ In summary, in the report we firstly divided the point variable into two parts, 
 
 ## Further task
 
-Since the origins of different wines are widely distributed, in this report we only specify the geographic location to the country. the `country` is one of the model explanatory variable, while the `province` and `winery` are not included，because of less quantitative  information in the two variables. In the next work, the geographic location can be more detailed, and further explore the influence of geographic location such as latitude and longitude and natural conditions on the quality of wine.
+Since the origins of different wines are widely distributed, in this report we only specify the geographic location to the country. the `country` is one of the model explanatory variable, while the `province` and `winery` are not included，because of less quantitative information in the two variables. In the next work, the geographic location can be more detailed, and further explore the influence of geographic location such as latitude and longitude and natural conditions on the quality of wine.
